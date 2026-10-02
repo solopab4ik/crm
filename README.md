@@ -8,4 +8,6 @@ CRM с ролями Client, Employee и Admin, серверным API, PostgreSQ
 
 Переход с D1 создаёт отдельную базу PostgreSQL. Существующие данные локальной D1 автоматически не переносятся. При первом API-запросе создаются демонстрационные аккаунты и данные.
 
+Переменная `CRM_PUBLIC_URL=https://orbitminicrm.netlify.app` задаёт доверенный адрес для проверки Origin и HTTPS-cookie за прокси. В Netlify она настроена для production/functions. При смене домена обновите её и повторите деплой.
+
 Полное описание, тестовые аккаунты, архитектура, permissions и команды запуска: [PROJECT.md](PROJECT.md).

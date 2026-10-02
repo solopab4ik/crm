@@ -63,6 +63,21 @@ try {
   await db().prepare('DELETE FROM clients WHERE id=?').bind('cascade-client').run();
   assert.equal(await db().prepare('SELECT * FROM notes WHERE id=?').bind('cascade-note').first(), null);
   console.log('PASS: PostgreSQL migration, rollback, case-insensitive search and foreign keys');
+  process.env.CRM_PUBLIC_URL = 'https://crm.example.test';
+  try {
+    const proxyLogin = await route.POST(new Request('http://internal.netlify/api/auth/login', {
+      method: 'POST', headers: { Origin: process.env.CRM_PUBLIC_URL, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'admin@mini-crm.test', password: 'CrmDemo!2026' }),
+    }));
+    assert.equal(proxyLogin.status, 200);
+    assert.match(proxyLogin.headers.get('set-cookie'), /Secure/);
+    const rejectedOrigin = await route.POST(new Request('http://internal.netlify/api/auth/login', {
+      method: 'POST', headers: { Origin: 'https://evil.example', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'admin@mini-crm.test', password: 'CrmDemo!2026' }),
+    }));
+    assert.equal(rejectedOrigin.status, 403);
+    console.log('PASS: trusted public origin behind proxy and Secure cookies');
+  } finally { delete process.env.CRM_PUBLIC_URL; }
 } finally {
   await new Promise(resolve => server.close(resolve));
   await postgres.close();
