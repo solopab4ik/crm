@@ -1,5 +1,8 @@
 import { getDatabase } from '@netlify/database';
 
+let connection: ReturnType<typeof getDatabase> | undefined;
+const pool = () => (connection ??= getDatabase()).pool;
+
 // Keep the existing parameterized query interface while using durable Postgres.
 function postgresQuery(sql: string) {
   let index = 0;
@@ -14,7 +17,7 @@ class Statement {
   constructor(readonly sql: string, readonly values: unknown[] = []) {}
   bind(...values: unknown[]) { return new Statement(this.sql, values); }
   async all() {
-    const result = await getDatabase().pool.query(postgresQuery(this.sql), this.values);
+    const result = await pool().query(postgresQuery(this.sql), this.values);
     return { results: result.rows };
   }
   async first<T = Record<string, unknown>>() {
@@ -27,7 +30,7 @@ class Statement {
 const database = {
   prepare(sql: string) { return new Statement(sql); },
   async batch(statements: Statement[]) {
-    const client = await getDatabase().pool.connect();
+    const client = await pool().connect();
     try {
       await client.query('BEGIN');
       const results = [];

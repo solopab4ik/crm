@@ -10,7 +10,8 @@ const pool = {
   query: (sql, values = []) => postgres.query(sql, values),
   async connect() { return { query: this.query, release() {} }; },
 };
-globalThis.__crmTestDatabase = () => ({ pool });
+let connections = 0;
+globalThis.__crmTestDatabase = () => { connections++; return { pool }; };
 
 function moduleUrl(source) {
   const code = ts.transpileModule(source, { compilerOptions: {
@@ -76,7 +77,8 @@ try {
       body: JSON.stringify({ email: 'admin@mini-crm.test', password: 'CrmDemo!2026' }),
     }));
     assert.equal(rejectedOrigin.status, 403);
-    console.log('PASS: trusted public origin behind proxy and Secure cookies');
+    assert.equal(connections, 1, 'Reuse a single database pool across API requests');
+    console.log('PASS: trusted public origin behind proxy, Secure cookies and pool reuse');
   } finally { delete process.env.CRM_PUBLIC_URL; }
 } finally {
   await new Promise(resolve => server.close(resolve));
